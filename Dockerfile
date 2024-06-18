@@ -1,3 +1,8 @@
 FROM alpine
-ARG SOURCE_DATE_EPOCH
-RUN echo $SOURCE_DATE_EPOCH
+COPY <<EOF /greeting.txt
+Hello, World!
+
+This is a greeting from a Docker container,
+built with Docker Build Cloud in GitHub Actions!
+EOF
+CMD ["cat", "/greeting.txt"]
