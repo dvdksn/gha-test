@@ -40,7 +40,13 @@ jobs:
           test -n "$DOCKER_USERNAME" && test -n "$DOCKER_PAT"
           sbx policy init deny-all
           printf '%s' "$DOCKER_PAT" | sbx login --username "$DOCKER_USERNAME" --password-stdin
-          sbx settings set kit.allowedSources '["docker.io/", "ghcr.io/dvdksn/"]'
+          for attempt in 1 2 3; do
+            if sbx settings set kit.allowedSources '["docker.io/", "ghcr.io/dvdksn/"]'; then
+              break
+            fi
+            test "$attempt" -lt 3 || exit 1
+            sleep 3
+          done
       - name: Run published base workload
         uses: dvdksn/sbx-action@7965bf26f415dd7af53ac689e47352be96539a80
         with:
