@@ -52,7 +52,7 @@ jobs:
           printf '%s' "$DOCKER_PAT" | sbx login --username "$DOCKER_USERNAME" --password-stdin
       - name: Run sandbox agent smoke test
         id: sandbox
-        uses: dvdksn/sbx-action@230f283e93622c19d88c55e99df6866d26e84381
+        uses: dvdksn/sbx-action@7965bf26f415dd7af53ac689e47352be96539a80
         with:
           environment-file: sbx-${{ matrix.agent }}.yaml
           credentials: |
