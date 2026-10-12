@@ -63,12 +63,13 @@ jobs:
             printf 'direct workspace mount works\n' > smoke-results/workspace.txt
             python3 - <<'PY'
             import os
+            placeholders = {'proxy-managed', 'sk-ant-api03-proxy-managed', 'gho_sbxproxymanaged000000000000000000000'}
             for name in ('ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'CODEX_API_KEY'):
                 value = os.environ.get(name, '')
-                assert not value.startswith('sk-'), 'raw provider credential exposed in guest environment'
+                assert not value or value in placeholders, 'non-placeholder provider credential exposed in guest environment'
             for name in ('GITHUB_TOKEN', 'GH_TOKEN'):
                 value = os.environ.get(name, '')
-                assert not value or value == 'proxy-managed' or value.startswith('docker-placeholder-'), 'unexpected non-placeholder GitHub token in guest'
+                assert not value or value in placeholders, 'unexpected non-placeholder GitHub token in guest'
             assert os.environ.get('SBX_CRED_GITHUB_MODE', 'none') == 'none', 'unexpected bound GitHub credential'
             print('Guest environment has no raw provider key or GitHub token')
             PY
