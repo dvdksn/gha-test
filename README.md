@@ -48,3 +48,7 @@ made by each agent, and sandbox removal.
 **SBX direct kit smoke test** exercises the digest-pinned published
 `dvdksn/kit-base` workload without any model provider key. It has the same manual
 main-branch/owner restriction as the agent workflow.
+
+[The digest-pinned direct-kit test also passed](https://github.com/dvdksn/gha-test/actions/runs/38264605022),
+confirming that the published `kit-base` workload runs through direct-kit mode
+and writes to the workflow checkout without model credentials.
