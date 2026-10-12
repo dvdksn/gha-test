@@ -1,0 +1,9 @@
+schemaVersion: "1"
+agent: claude
+sandboxOptions:
+  cpus: 2
+  memory: 4g
+bindings:
+  anthropic:
+    apiKey:
+      domains: [api.anthropic.com]

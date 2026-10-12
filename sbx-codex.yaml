@@ -1,0 +1,9 @@
+schemaVersion: "1"
+agent: codex
+sandboxOptions:
+  cpus: 2
+  memory: 4g
+bindings:
+  openai:
+    apiKey:
+      domains: [api.openai.com]
