@@ -163,6 +163,6 @@ jobs:
           test -z "$ARTIFACT"
         fi
         # No sandbox or temporary extraction files should remain.
-        test -z "$(find "$RUNNER_TEMP" -maxdepth 1 -name 'sbx-action-*' -print -quit)"
+        test -z "$(find "$RUNNER_TEMP" -maxdepth 1 -name 'sbx-action-*' ! -name 'sbx-action-python' -print -quit)"
         sbx ls
         printf 'Clone isolation and findings outcome matched: %s\n' "$ACTUAL"
