@@ -1,6 +1,6 @@
 name: SBX Action smoke test
-'on':
-  workflow_dispatch: null
+on:
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -15,81 +15,76 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - agent: claude
-          service: anthropic
-          secret: ANTHROPIC_API_KEY
-        - agent: codex
-          service: openai
-          secret: OPENAI_API_KEY
+          - agent: claude
+            service: anthropic
+            secret: ANTHROPIC_API_KEY
+          - agent: codex
+            service: openai
+            secret: OPENAI_API_KEY
     steps:
-    - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-      with:
-        persist-credentials: false
-        ref: ${{ github.sha }}
-    - name: Run sandbox agent smoke test
-      id: sandbox
-      uses: dvdksn/sbx-action@272f331e560dbc68f9f64aa04bc6e123b3be802c
-      with:
-        environment-file: sbx-${{ matrix.agent }}.yaml
-        credentials: '${{ matrix.service }}: ${{ toJSON(secrets[matrix.secret]) }}
-
-          '
-        run: "set -euo pipefail\nmkdir -p smoke-results\nprintf 'direct workspace mount works\\n' > smoke-results/workspace.txt\n\
-          python3 - <<'PY'\nimport os\nplaceholders = {'proxy-managed', 'sk-ant-api03-proxy-managed', 'gho_sbxproxymanaged000000000000000000000'}\n\
-          for name in ('ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'CODEX_API_KEY'):\n    value = os.environ.get(name,\
-          \ '')\n    assert not value or value in placeholders, 'non-placeholder provider credential exposed in\
-          \ guest environment'\nfor name in ('GITHUB_TOKEN', 'GH_TOKEN'):\n    value = os.environ.get(name, '')\n\
-          \    assert not value or value in placeholders, 'unexpected non-placeholder GitHub token in guest'\nassert\
-          \ os.environ.get('SBX_CRED_GITHUB_MODE', 'none') == 'none', 'unexpected bound GitHub credential'\nprint('Guest\
-          \ environment has no raw provider key or GitHub token')\nPY\nstatus=$(curl --silent --output /dev/null\
-          \ --write-out '%{http_code}' --max-time 15 https://example.com || true)\ntest \"$status\" = 403 || { printf\
-          \ 'Unexpected blocked-domain status: %s\\n' \"$status\"; exit 1; }\nprompt='This is a CI smoke test. Do\
-          \ not read repository instructions or other files. Run exactly one shell command: printf \"agent executed\
-          \ inside sandbox\\n\" > smoke-results/agent.txt . Then respond with SMOKE_OK. Do not use the network,\
-          \ install tools, or make other changes.'\nif command -v claude >/dev/null; then\n  timeout 180 claude\
-          \ -p --model haiku --max-turns 2 --max-budget-usd 0.25 \\\n    --dangerously-skip-permissions \"$prompt\"\
-          \ > smoke-results/response.txt\nelse\n  timeout 180 codex exec --ephemeral --sandbox workspace-write \\\
-          \n    -o smoke-results/response.txt \"$prompt\"\nfi\ntest -f smoke-results/agent.txt\n"
-        docker-username: ${{ secrets.DOCKER_USERNAME }}
-        docker-token: ${{ secrets.DOCKER_PAT }}
-    - name: Verify workspace changes and sandbox cleanup
-      env:
-        SANDBOX_NAME: ${{ steps.sandbox.outputs.sandbox-name }}
-      run: 'python3 - <<''PY''
-
-        from pathlib import Path
-
-        assert Path(''smoke-results/workspace.txt'').read_text() == ''direct workspace mount works\n''
-
-        assert Path(''smoke-results/agent.txt'').read_text() == ''agent executed inside sandbox\n''
-
-        assert ''SMOKE_OK'' in Path(''smoke-results/response.txt'').read_text()
-
-        print(''Agent execution and writable host workspace verified'')
-
-        PY
-
-        sbx ls --format json > "$RUNNER_TEMP/sandbox-list.json"
-
-        python3 - <<''PY''
-
-        import json, os
-
-        from pathlib import Path
-
-        items = json.loads((Path(os.environ[''RUNNER_TEMP'']) / ''sandbox-list.json'').read_text())
-
-        assert not any(item.get(''name'') == os.environ[''SANDBOX_NAME''] for item in items)
-
-        print(''Sandbox cleanup verified'')
-
-        PY
-
-        '
-    - name: Upload smoke results
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-      with:
-        name: smoke-${{ matrix.agent }}
-        path: smoke-results/*.txt
-        retention-days: 1
-        if-no-files-found: error
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - name: Run sandbox agent smoke test
+        id: sandbox
+        uses: dvdksn/sbx-action@272f331e560dbc68f9f64aa04bc6e123b3be802c
+        with:
+          environment-file: sbx-${{ matrix.agent }}.yaml
+          credentials: |
+            ${{ matrix.service }}: ${{ toJSON(secrets[matrix.secret]) }}
+          run: |
+            set -euo pipefail
+            mkdir -p smoke-results
+            printf 'direct workspace mount works\n' > smoke-results/workspace.txt
+            python3 - <<'PY'
+            import os
+            placeholders = {'proxy-managed', 'sk-ant-api03-proxy-managed', 'gho_sbxproxymanaged000000000000000000000'}
+            for name in ('ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'CODEX_API_KEY'):
+                value = os.environ.get(name, '')
+                assert not value or value in placeholders, 'non-placeholder provider credential exposed in guest environment'
+            for name in ('GITHUB_TOKEN', 'GH_TOKEN'):
+                value = os.environ.get(name, '')
+                assert not value or value in placeholders, 'unexpected non-placeholder GitHub token in guest'
+            assert os.environ.get('SBX_CRED_GITHUB_MODE', 'none') == 'none', 'unexpected bound GitHub credential'
+            print('Guest environment has no raw provider key or GitHub token')
+            PY
+            status=$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 15 https://example.com || true)
+            test "$status" = 403 || { printf 'Unexpected blocked-domain status: %s\n' "$status"; exit 1; }
+            prompt='This is a CI smoke test. Do not read repository instructions or other files. Run exactly one shell command: printf "agent executed inside sandbox\n" > smoke-results/agent.txt . Then respond with SMOKE_OK. Do not use the network, install tools, or make other changes.'
+            if command -v claude >/dev/null; then
+              timeout 180 claude -p --model haiku --max-turns 2 --max-budget-usd 0.25 \
+                --dangerously-skip-permissions "$prompt" > smoke-results/response.txt
+            else
+              timeout 180 codex exec --ephemeral --sandbox workspace-write \
+                -o smoke-results/response.txt "$prompt"
+            fi
+            test -f smoke-results/agent.txt
+          docker-username: ${{ secrets.DOCKER_USERNAME }}
+          docker-token: ${{ secrets.DOCKER_PAT }}
+      - name: Verify workspace changes and sandbox cleanup
+        env:
+          SANDBOX_NAME: ${{ steps.sandbox.outputs.sandbox-name }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          assert Path('smoke-results/workspace.txt').read_text() == 'direct workspace mount works\n'
+          assert Path('smoke-results/agent.txt').read_text() == 'agent executed inside sandbox\n'
+          assert 'SMOKE_OK' in Path('smoke-results/response.txt').read_text()
+          print('Agent execution and writable host workspace verified')
+          PY
+          sbx ls --format json > "$RUNNER_TEMP/sandbox-list.json"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          items = json.loads((Path(os.environ['RUNNER_TEMP']) / 'sandbox-list.json').read_text())
+          assert not any(item.get('name') == os.environ['SANDBOX_NAME'] for item in items)
+          print('Sandbox cleanup verified')
+          PY
+      - name: Upload smoke results
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: smoke-${{ matrix.agent }}
+          path: smoke-results/*.txt
+          retention-days: 1
+          if-no-files-found: error

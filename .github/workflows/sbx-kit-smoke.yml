@@ -1,6 +1,6 @@
 name: SBX direct kit smoke test
-'on':
-  workflow_dispatch: null
+on:
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -12,45 +12,43 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-    - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-      with:
-        persist-credentials: false
-        ref: ${{ github.sha }}
-    - name: Verify bundled setup with built-in workload
-      uses: dvdksn/sbx-action@272f331e560dbc68f9f64aa04bc6e123b3be802c
-      with:
-        environment-file: sbx-claude.yaml
-        docker-username: ${{ secrets.DOCKER_USERNAME }}
-        docker-token: ${{ secrets.DOCKER_PAT }}
-        run: 'true'
-    - name: Configure custom kit source policy
-      run: "set -euo pipefail\nsbx policy init deny-all\nfor attempt in 1 2 3; do\n  if sbx settings set kit.allowedSources\
-        \ '[\"docker.io/\", \"ghcr.io/dvdksn/\"]'; then\n    break\n  fi\n  test \"$attempt\" -lt 3 || exit 1\n\
-        \  sleep 3\ndone\n"
-    - name: Run published base workload
-      uses: dvdksn/sbx-action@272f331e560dbc68f9f64aa04bc6e123b3be802c
-      with:
-        kit: ghcr.io/dvdksn/kit-base@sha256:a9c00cc0e65477904073ef6f3f9036fcb95b74c0397a3bd9879598ea81df3588
-        run: 'set -eu
-
-          printf ''custom kit workspace works\n'' > kit-smoke.txt
-
-          command -v git
-
-          command -v python3
-
-          '
-        docker-username: ${{ secrets.DOCKER_USERNAME }}
-        docker-token: ${{ secrets.DOCKER_PAT }}
-    - name: Verify custom kit workspace
-      run: 'python3 - <<''PY''
-
-        from pathlib import Path
-
-        assert Path(''kit-smoke.txt'').read_text() == ''custom kit workspace works\n''
-
-        print(''Published custom workload and host workspace verified'')
-
-        PY
-
-        '
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - name: Verify bundled setup with built-in workload
+        uses: dvdksn/sbx-action@272f331e560dbc68f9f64aa04bc6e123b3be802c
+        with:
+          environment-file: sbx-claude.yaml
+          docker-username: ${{ secrets.DOCKER_USERNAME }}
+          docker-token: ${{ secrets.DOCKER_PAT }}
+          run: 'true'
+      - name: Configure custom kit source policy
+        run: |
+          set -euo pipefail
+          sbx policy init deny-all
+          for attempt in 1 2 3; do
+            if sbx settings set kit.allowedSources '["docker.io/", "ghcr.io/dvdksn/"]'; then
+              break
+            fi
+            test "$attempt" -lt 3 || exit 1
+            sleep 3
+          done
+      - name: Run published base workload
+        uses: dvdksn/sbx-action@272f331e560dbc68f9f64aa04bc6e123b3be802c
+        with:
+          kit: ghcr.io/dvdksn/kit-base@sha256:a9c00cc0e65477904073ef6f3f9036fcb95b74c0397a3bd9879598ea81df3588
+          run: |
+            set -eu
+            printf 'custom kit workspace works\n' > kit-smoke.txt
+            command -v git
+            command -v python3
+          docker-username: ${{ secrets.DOCKER_USERNAME }}
+          docker-token: ${{ secrets.DOCKER_PAT }}
+      - name: Verify custom kit workspace
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          assert Path('kit-smoke.txt').read_text() == 'custom kit workspace works\n'
+          print('Published custom workload and host workspace verified')
+          PY
