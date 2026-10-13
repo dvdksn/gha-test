@@ -1,0 +1,49 @@
+name: SBX credential boundaries integration
+true:
+  workflow_dispatch: null
+permissions:
+  contents: read
+concurrency:
+  group: sbx-boundaries
+  cancel-in-progress: false
+jobs:
+  smoke:
+    if: github.ref == 'refs/heads/main' && github.actor == 'dvdksn'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - agent: claude
+            service: anthropic
+            secret: ANTHROPIC_API_KEY
+          - agent: codex
+            service: openai
+            secret: OPENAI_API_KEY
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - name: Run sandbox agent smoke test
+        id: sandbox
+        uses: dvdksn/sbx-action@272f331e560dbc68f9f64aa04bc6e123b3be802c
+        with:
+          environment-file: sbx-${{ matrix.agent }}.yaml
+          credentials: |
+            ${{ matrix.service }}: ${{ toJSON(secrets[matrix.secret]) }}
+          run: bash tests/check-guest.sh
+          docker-username: ${{ secrets.DOCKER_USERNAME }}
+          docker-token: ${{ secrets.DOCKER_PAT }}
+      - name: Verify workspace changes and sandbox cleanup
+        env:
+          SANDBOX_NAME: ${{ steps.sandbox.outputs.sandbox-name }}
+        run: bash tests/check-host.sh
+      - name: Upload smoke results
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: smoke-${{ matrix.agent }}
+          path: smoke-results/*.txt
+          retention-days: 1
+          if-no-files-found: error

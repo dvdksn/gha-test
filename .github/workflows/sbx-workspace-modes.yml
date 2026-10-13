@@ -32,7 +32,6 @@ jobs:
       - name: Configure custom kit source policy
         run: |
           set -euo pipefail
-          sbx policy init deny-all
           for attempt in 1 2 3; do
             if sbx settings set kit.allowedSources '["docker.io/", "ghcr.io/dvdksn/"]'; then
               break
