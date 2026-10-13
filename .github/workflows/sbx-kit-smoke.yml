@@ -12,20 +12,34 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
           ref: ${{ github.sha }}
-      - name: Verify bundled setup with built-in workload
-        uses: dvdksn/sbx-action@272f331e560dbc68f9f64aa04bc6e123b3be802c
-        with:
-          environment-file: sbx-claude.yaml
-          docker-username: ${{ secrets.DOCKER_USERNAME }}
-          docker-token: ${{ secrets.DOCKER_PAT }}
-          run: 'true'
-      - name: Configure custom kit source policy
+      - name: Verify KVM and install pinned SBX
+        env:
+          SBX_DEB: ${{ runner.temp }}/sbx.deb
         run: |
           set -euo pipefail
+          test -c /dev/kvm || { echo '::error::Hosted runner has no KVM device'; exit 1; }
+          sudo setfacl -m "u:$(id -un):rw" /dev/kvm
+          test -r /dev/kvm && test -w /dev/kvm
+          curl --fail --silent --show-error --location \
+            https://github.com/docker/sbx-releases/releases/download/v0.48.0-rc4/DockerSandboxes-linux-amd64-ubuntu2404.deb \
+            --output "$SBX_DEB"
+          printf '%s  %s\n' d2a3d90545f7fe242b6bf412ce2afe198cda33f399e2612b91a3418bf13a96e3 "$SBX_DEB" | sha256sum --check
+          sudo apt-get update -qq
+          sudo apt-get install -y "$SBX_DEB"
+          sbx version
+      - name: Initialize sandbox policy and authenticate
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PAT: ${{ secrets.DOCKER_PAT }}
+        run: |
+          set -euo pipefail
+          test -n "$DOCKER_USERNAME" && test -n "$DOCKER_PAT"
+          sbx policy init deny-all
+          printf '%s' "$DOCKER_PAT" | sbx login --username "$DOCKER_USERNAME" --password-stdin
           for attempt in 1 2 3; do
             if sbx settings set kit.allowedSources '["docker.io/", "ghcr.io/dvdksn/"]'; then
               break
@@ -42,8 +56,6 @@ jobs:
             printf 'custom kit workspace works\n' > kit-smoke.txt
             command -v git
             command -v python3
-          docker-username: ${{ secrets.DOCKER_USERNAME }}
-          docker-token: ${{ secrets.DOCKER_PAT }}
       - name: Verify custom kit workspace
         run: |
           python3 - <<'PY'

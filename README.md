@@ -12,8 +12,8 @@ Required secrets: `DOCKER_USERNAME`, `DOCKER_PAT`, `ANTHROPIC_API_KEY`, and
 
 Additional integration tests cover credential boundaries, direct versus clone
 workspaces, cleanup, and a custom kit. Boundary assertions live in `tests/`.
-The custom-kit tests configure the runner's allowed kit sources after a first
-Action invocation installs and authenticates SBX.
+The custom-kit tests provision SBX explicitly to configure allowed kit sources
+before invoking the Action; the agent examples exercise bundled setup.
 
 Workflows accept manual runs by `dvdksn` on `main`, use read-only GitHub
 permissions, and disable checkout credential persistence. Use trusted kits and
