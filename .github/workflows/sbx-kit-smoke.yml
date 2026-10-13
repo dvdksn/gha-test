@@ -1,5 +1,5 @@
 name: SBX direct kit smoke test
-true:
+'on':
   workflow_dispatch: null
 permissions:
   contents: read
