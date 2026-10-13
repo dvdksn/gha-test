@@ -28,7 +28,7 @@ jobs:
           ref: ${{ github.sha }}
       - name: Run sandbox agent smoke test
         id: sandbox
-        uses: dvdksn/sbx-action@272f331e560dbc68f9f64aa04bc6e123b3be802c
+        uses: dvdksn/sbx-action@ef8a1dcb72ce5377149558f2b3c93ca4c174b883
         with:
           environment-file: sbx-${{ matrix.agent }}.yaml
           credentials: |

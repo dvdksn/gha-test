@@ -55,7 +55,7 @@ jobs:
         done
     - name: Run SBX with selected workspace mode
       id: task
-      uses: dvdksn/sbx-action@272f331e560dbc68f9f64aa04bc6e123b3be802c
+      uses: dvdksn/sbx-action@ef8a1dcb72ce5377149558f2b3c93ca4c174b883
       with:
         kit: ghcr.io/dvdksn/kit-base@sha256:a9c00cc0e65477904073ef6f3f9036fcb95b74c0397a3bd9879598ea81df3588
         clone: ${{ matrix.clone }}
