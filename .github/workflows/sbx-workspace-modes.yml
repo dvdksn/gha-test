@@ -22,14 +22,13 @@ jobs:
       with:
         persist-credentials: false
         ref: ${{ github.sha }}
-    - name: Verify KVM and install pinned SBX
-      env:
-        SBX_DEB: ${{ runner.temp }}/sbx.deb
-      run: "set -euo pipefail\ntest -c /dev/kvm || { echo '::error::Hosted runner has no KVM device'; exit 1; }\n\
-        sudo setfacl -m \"u:$(id -un):rw\" /dev/kvm\ntest -r /dev/kvm && test -w /dev/kvm\ncurl --fail --silent\
-        \ --show-error --location \\\n  https://github.com/docker/sbx-releases/releases/download/v0.48.0-rc4/DockerSandboxes-linux-amd64-ubuntu2404.deb\
-        \ \\\n  --output \"$SBX_DEB\"\nprintf '%s  %s\\n' d2a3d90545f7fe242b6bf412ce2afe198cda33f399e2612b91a3418bf13a96e3\
-        \ \"$SBX_DEB\" | sha256sum --check\nsudo apt-get update -qq\nsudo apt-get install -y \"$SBX_DEB\"\nsbx version\n"
+    - name: Verify bundled setup with built-in workload
+      uses: dvdksn/sbx-action@272f331e560dbc68f9f64aa04bc6e123b3be802c
+      with:
+        environment-file: sbx-claude.yaml
+        docker-username: ${{ secrets.DOCKER_USERNAME }}
+        docker-token: ${{ secrets.DOCKER_PAT }}
+        run: 'true'
     - name: Configure custom kit source policy
       run: "set -euo pipefail\nsbx policy init deny-all\nfor attempt in 1 2 3; do\n  if sbx settings set kit.allowedSources\
         \ '[\"docker.io/\", \"ghcr.io/dvdksn/\"]'; then\n    break\n  fi\n  test \"$attempt\" -lt 3 || exit 1\n\
